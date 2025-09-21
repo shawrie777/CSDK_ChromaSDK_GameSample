@@ -122,7 +122,7 @@ const char* IsSelected()
 
 CpuUsage _gUsage;
 
-void PrintLegend(bool supportsStreaming, BYTE platform)
+void PrintLegend()
 {
 	for (int i = 0; i < 25; ++i)
 	{
@@ -133,76 +133,9 @@ void PrintLegend(bool supportsStreaming, BYTE platform)
 	fprintf(stdout, "\r\n");
 
 	fprintf(stdout, "Use UP and DOWN arrows to select animation and press ENTER.\r\n");
-	if (supportsStreaming)
-	{
-		fprintf(stdout, "Use `P` to switch streaming platforms. ");
-	}
 	fprintf(stdout, "Use ESCAPE to QUIT.\r\n");
 
-	if (supportsStreaming)
-	{
-		fprintf(stdout, "Streaming Info (SUPPORTED):\r\n");
-		ChromaSDK::Stream::StreamStatusType status = ChromaAnimationAPI::CoreStreamGetStatus();
-		fprintf(stdout, "Status: %s\r\n", ChromaAnimationAPI::CoreStreamGetStatusString(status));
-		if (_gLenShortcode > 0)
-		{
-			fprintf(stdout, "Shortcode: %s\r\n", _gShortcode);
-		}
-		if (_gLenStreamId > 0)
-		{
-			fprintf(stdout, "StreamId: %s\r\n", _gStreamId);
-		}
-		if (_gLenStreamKey > 0)
-		{
-			fprintf(stdout, "StreamKey: %s\r\n", _gStreamKey);
-		}
-		if (g_LenFocus > 0)
-		{
-			fprintf(stdout, "Focus: %s\r\n", g_Focus);
-		}
-
-		short cpuUsage = _gUsage.GetUsage();
-		cout << "CPU usage: " << cpuUsage << "%" << endl;
-
-		fprintf(stdout, "\r\n");
-	}
-
-
-	if (supportsStreaming)
-	{
-		_gIndex = -10;
-		fprintf(stdout, "[%s] Request Shortcode for Platform: ", IsSelected());
-
-		switch (platform)
-		{
-		case 0:
-			fprintf(stdout, "Windows PC (PC)\r\n");
-			break;
-		case 1:
-			fprintf(stdout, "Windows Cloud (LUNA)\r\n");
-			break;
-		case 2:
-			fprintf(stdout, "Windows Cloud (GEFORCE NOW)\r\n");
-			break;
-		case 3:
-			fprintf(stdout, "Windows Cloud (GAME PASS)\r\n");
-			break;
-		}
-
-		fprintf(stdout, "[%s] Request StreamId\r\n", IsSelected());
-		fprintf(stdout, "[%s] Request StreamKey\r\n", IsSelected());
-		fprintf(stdout, "[%s] Release Shortcode\r\n", IsSelected());
-		fprintf(stdout, "[%s] Broadcast\t\t", IsSelected());
-		fprintf(stdout, "[%s] BroadcastEnd\r\n", IsSelected());
-		fprintf(stdout, "[%s] Watch\t\t", IsSelected());
-		fprintf(stdout, "[%s] WatchEnd\r\n", IsSelected());
-		fprintf(stdout, "[%s] GetFocus\t\t", IsSelected());
-		fprintf(stdout, "[%s] SetFocus\r\n", IsSelected());
-	}
-	else
-	{
-		_gIndex = 0;
-	}
+	_gIndex = 0;
 	for (int effect = 1; effect <= MAX_SELECTION; ++effect)
 	{
 		fprintf(stdout, "[%s] Effect %d", IsSelected(), effect);
@@ -246,7 +179,7 @@ void ClearManualInput()
 	_gManualInput[1] = ' ';
 }
 
-void ExecuteEffect(bool supportsStreaming, BYTE platform);
+void ExecuteEffect();
 
 void Cleanup()
 {
@@ -300,13 +233,6 @@ int main()
 	// Manually set event names
 	ChromaAnimationAPI::UseForwardChromaEvents(false);
 
-	bool supportsStreaming = ChromaAnimationAPI::CoreStreamSupportsStreaming();
-
-	if (supportsStreaming)
-	{
-		_gSelection = -9;
-	}
-
 	// sample for getting the mapping between potential UI key binding enums and RZKEY
 	RazerKeyboardMapping* mapping = RazerKeyboardMapping::GetInstance();
 	int key = mapping->GetRZKEY(2);
@@ -339,14 +265,11 @@ int main()
 		HandleInput(VK_NUMPAD9),
 	};
 
-	BYTE platform = 0;
-
-	PrintLegend(supportsStreaming, platform);
+	PrintLegend();
 	HandleInput inputUp = HandleInput(VK_UP);
 	HandleInput inputDown = HandleInput(VK_DOWN);
 	HandleInput inputBackspace = HandleInput(VK_BACK);
 	HandleInput inputEnter = HandleInput(VK_RETURN);
-	HandleInput inputPlatform = HandleInput('P');
 	HandleInput inputEscape = HandleInput(VK_ESCAPE);
 
 	int autoPrint = 0;
@@ -356,7 +279,7 @@ int main()
 		if (++autoPrint > 100)
 		{
 			autoPrint = 0;
-			PrintLegend(supportsStreaming, platform);
+			PrintLegend();
 		}
 
 		if (inputEscape.WasReleased(true))
@@ -367,27 +290,17 @@ int main()
 			ChromaAnimationAPI::Uninit();
 			break;
 		}
-		else if (inputPlatform.WasReleased(true))
-		{
-			ClearManualInput();
-			platform = (platform + 1) % 4; //PC, AMAZON LUNA, MS GAME PASS, NVIDIA GFN
-			PrintLegend(supportsStreaming, platform);
-		}
 		else if (inputUp.WasReleased(true))
 		{
 			ClearManualInput();
-			if (supportsStreaming && _gSelection > -9)
+			if (_gSelection > 1)
 			{
 				--_gSelection;
 			}
-			else if (_gSelection > 1)
-			{
-				--_gSelection;
-			}
-			PrintLegend(supportsStreaming, platform);
+			PrintLegend();
 			if (_gSelection >= 1)
 			{
-				ExecuteEffect(supportsStreaming, platform);
+				ExecuteEffect();
 			}
 		}
 
@@ -399,10 +312,10 @@ int main()
 			{
 				_gSelection++;
 			}
-			PrintLegend(supportsStreaming, platform);
+			PrintLegend();
 			if (_gSelection > 0)
 			{
-				ExecuteEffect(supportsStreaming, platform);
+				ExecuteEffect();
 			}
 		}
 
@@ -460,19 +373,19 @@ int main()
 			{
 				_gSelection = val;
 			}
-			PrintLegend(supportsStreaming, platform);
+			PrintLegend();
 		}
 
 		if (inputEnter.WasReleased(true))
 		{
-			PrintLegend(supportsStreaming, platform);
+			PrintLegend();
 			ClearManualInput();
 
-			ExecuteEffect(supportsStreaming, platform);
+			ExecuteEffect();
 
 			if (_gSelection < 1)
 			{
-				PrintLegend(supportsStreaming, platform);
+				PrintLegend();
 			}
 		}
 		Sleep(1);
@@ -483,97 +396,13 @@ int main()
 	return 0;
 }
 
-void ExecuteEffect(bool supportsStreaming, BYTE platform)
+void ExecuteEffect()
 {
 	// get current time
 	high_resolution_clock::time_point timer = high_resolution_clock::now();
 
 	switch (_gSelection)
 	{
-	case -9:
-		if (supportsStreaming)
-		{
-			wstring strPlatform = L"PC";
-			switch (platform)
-			{
-			case 0:
-				strPlatform = L"PC";
-				break;
-			case 1:
-				strPlatform = L"LUNA";
-				break;
-			case 2:
-				strPlatform = L"GEFORCE_NOW";
-				break;
-			case 3:
-				strPlatform = L"GAME_PASS";
-				break;
-			}
-			ChromaAnimationAPI::CoreStreamGetAuthShortcode(_gShortcode, &_gLenShortcode, strPlatform.c_str(), L"CSDK Sample App 好");
-		}
-		break;
-	case -8:
-		if (supportsStreaming && _gLenShortcode > 0)
-		{
-			ChromaAnimationAPI::CoreStreamGetId(_gShortcode, _gStreamId, &_gLenStreamId);
-		}
-		break;
-	case -7:
-		if (supportsStreaming && _gLenShortcode > 0)
-		{
-			ChromaAnimationAPI::CoreStreamGetKey(_gShortcode, _gStreamKey, &_gLenStreamKey);
-		}
-		break;
-	case -6:
-		if (supportsStreaming && _gLenShortcode > 0)
-		{
-			if (ChromaAnimationAPI::CoreStreamReleaseShortcode(_gShortcode))
-			{
-				memset(_gShortcode, 0, size(_gShortcode));
-				_gLenShortcode = 0;
-			}
-		}
-		break;
-	case -5:
-		if (supportsStreaming &&
-			_gLenStreamId > 0 && _gLenStreamKey > 0)
-		{
-			ChromaAnimationAPI::CoreStreamBroadcast(_gStreamId, _gStreamKey);
-		}
-		break;
-	case -4:
-		if (supportsStreaming)
-		{
-			ChromaAnimationAPI::CoreStreamBroadcastEnd();
-		}
-		break;
-	case -3:
-		if (supportsStreaming &&
-			_gLenStreamId > 0)
-		{
-			unsigned long long timestamp = 0;
-			ChromaAnimationAPI::CoreStreamWatch(_gStreamId, timestamp);
-		}
-		break;
-	case -2:
-		if (supportsStreaming)
-		{
-			ChromaAnimationAPI::CoreStreamWatchEnd();
-		}
-		break;
-	case -1:
-		if (supportsStreaming)
-		{
-			ChromaAnimationAPI::CoreStreamGetFocus(g_Focus, &g_LenFocus);
-		}
-		break;
-	case 0:
-		if (supportsStreaming)
-		{
-			ChromaAnimationAPI::CoreStreamSetFocus(g_FocusGuid);
-			ChromaAnimationAPI::CoreStreamGetFocus(g_Focus, &g_LenFocus);
-		}
-		break;
 	case 1:
 		ShowEffect1();
 		break;
